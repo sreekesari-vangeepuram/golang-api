@@ -2,7 +2,11 @@ module github.com/sreekesari-vangeepuram/golang-api
 
 go 1.17
 
-require github.com/gin-gonic/gin v1.7.7
+require (
+	github.com/fauna/faunadb-go/v4 v4.1.0
+	github.com/gin-gonic/gin v1.7.7
+	github.com/joho/godotenv v1.4.0
+)
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -17,6 +21,8 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
-	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
+	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
+	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
+	golang.org/x/text v0.3.3 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
