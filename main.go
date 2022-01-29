@@ -14,7 +14,7 @@ import (
 type User struct {
 	ID          string    `json:"id,omitempty" fauna:"id"`
 	Name        string    `json:"name" fauna:"name"`
-	DOB         string    `json:"dob" fauna"dob"`
+	DOB         time.Time `json:"dob" fauna"dob"`
 	Address     string    `json:"address" fauna:"address"`
 	Description string    `json:"description" fauna:"description"`
 	CreatedAt   time.Time `json:"createdAt,omitempty" fauna:"createdAt"`
@@ -90,7 +90,7 @@ var users []User = []User{
 	{
 		ID:          "1",
 		Name:        "Sreekesari Vangeepuram",
-		DOB:         "27-01-2003",
+		DOB:         time.Date(2003, 1, 27, 0, 0, 0, 0, time.UTC),
 		Address:     "6-3-787/R/306, Hyderabad, Telangana, India - 500016",
 		Description: "Minimalist | Programmer | Explorer",
 		CreatedAt:   time.Now(),
@@ -98,7 +98,7 @@ var users []User = []User{
 	{
 		ID:          "2",
 		Name:        "Vemula Vamshi Krishna",
-		DOB:         "20-06-2004",
+		DOB:         time.Date(2004, 6, 20, 0, 0, 0, 0, time.UTC),
 		Address:     "Near AMB Mall, Rajendra Nagar, Kondapur, Hyderabad, Telangana, India",
 		Description: "Intermediate Student",
 		CreatedAt:   time.Now(),
@@ -106,42 +106,44 @@ var users []User = []User{
 	{
 		ID:          "3",
 		Name:        "Chepuri Vikram Bharadwaj",
-		DOB:         "16-12-2000",
+		DOB:         time.Date(2000, 12, 16, 0, 0, 0, 0, time.UTC),
 		Address:     "Near Alpha Hotel, Secendrabad East, Hyderabad, Telangana, India",
 		Description: "GOAT",
 		CreatedAt:   time.Now(),
 	},
 }
 
-// getUsers responds to GET requests to API
-func getUsers(ctx *gin.Context) {
-	// Change <users> part
-	ctx.IndentedJSON(http.StatusOK, users)
-}
-
-// getUserByID responds to GET requests with `id` parameter to API
-func getUserByID(ctx *gin.Context) {
+// getUser responds to GET requests with `id` parameter to API
+func getUser(ctx *gin.Context) {
 	var id string = ctx.Param("id")
 
-	// Change this part with call to DB
-	for _, user := range users {
-		if user.ID == id {
-			ctx.IndentedJSON(http.StatusOK, user)
-			return
-		}
+	result, err := adminClient.Query(
+		f.Get(f.Ref(f.Collection("Users"), id)))
+
+	// Incase user not found
+	if err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
 	}
 
-	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+	var user User
+	if err = result.At(f.ObjKey("data")).Get(&user); err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "unable to fetch user details"})
+		return
+	}
+
+	// Respond to client
+	ctx.IndentedJSON(http.StatusOK, user)
 }
 
-// createUsers responds to POST requests to API
-func createUsers(ctx *gin.Context) {
+// createUser responds to POST requests to API
+func createUser(ctx *gin.Context) {
 
 	var newUser User
 	if err := ctx.BindJSON(&newUser); err != nil {
 		ctx.IndentedJSON(
 			http.StatusNotAcceptable,
-			gin.H{"message": "Invalid JSON!"},
+			gin.H{"message": "invalid JSON data sent"},
 		)
 		return
 	}
@@ -151,7 +153,7 @@ func createUsers(ctx *gin.Context) {
 	if err != nil {
 		ctx.IndentedJSON(
 			http.StatusInternalServerError,
-			gin.H{"message": "Unable to generate an id for the user!"},
+			gin.H{"message": "unable to generate an id for the user"},
 		)
 		return
 	}
@@ -160,9 +162,8 @@ func createUsers(ctx *gin.Context) {
 	newUser.ID = id
 	newUser.CreatedAt = time.Now()
 
-	// Change the below line -> Upsert to DB
-	users = append(users, newUser) // DEBUG
-	result, err := adminClient.Query(
+	// Commiting user details to DB
+	_, err = adminClient.Query(
 		f.Create(
 			f.Ref(f.Collection("Users"), id),
 			f.Obj{
@@ -177,14 +178,20 @@ func createUsers(ctx *gin.Context) {
 			},
 		))
 
-	handleError(result, err)
+	if err != nil {
+		ctx.IndentedJSON(
+			http.StatusInternalServerError,
+			gin.H{"message": "unable to create document"},
+		)
+		return
+	}
 
 	// Respond client
 	ctx.IndentedJSON(http.StatusCreated, newUser)
 }
 
-// updateUsers responds to PATCH requests to API
-func updateUsers(ctx *gin.Context) {
+// updateUser responds to PATCH requests to API
+func updateUser(ctx *gin.Context) {
 
 	var id string = ctx.Param("id")
 	var updatedUser User
@@ -202,7 +209,7 @@ func updateUsers(ctx *gin.Context) {
 			}
 
 			// Update `dob`
-			if updatedUser.DOB != "" && updatedUser.DOB != user.DOB {
+			if updatedUser.DOB != user.DOB {
 				user.DOB = updatedUser.DOB
 			}
 
@@ -224,8 +231,8 @@ func updateUsers(ctx *gin.Context) {
 	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
 }
 
-// deleteUsers responds to DELETE requests to API
-func deleteUsers(ctx *gin.Context) {
+// deleteUser responds to DELETE requests to API
+func deleteUser(ctx *gin.Context) {
 	var id string = ctx.Param("id")
 
 	for i, user := range users {
@@ -245,11 +252,10 @@ func main() {
 	// logger and recovery (crash-free) middleware
 	router := gin.Default()
 
-	router.GET("/api/users", getUsers)
-	router.GET("/api/users/:id", getUserByID)
-	router.POST("/api/users", createUsers)
-	router.PATCH("/api/users/:id", updateUsers)
-	router.DELETE("/api/users/:id", deleteUsers)
+	router.GET("/api/users/:id", getUser)
+	router.POST("/api/users", createUser)
+	router.PATCH("/api/users/:id", updateUser)
+	router.DELETE("/api/users/:id", deleteUser)
 
 	router.Run(":3000")
 
