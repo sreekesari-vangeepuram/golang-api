@@ -200,35 +200,56 @@ func updateUser(ctx *gin.Context) {
 		return
 	}
 
-	// [ID] and [CreatedAt] fields can't be either created or changed
-	for _, user := range users {
-		if user.ID == id {
-			// Update `name`
-			if updatedUser.Name != "" && updatedUser.Name != user.Name {
-				user.Name = updatedUser.Name
-			}
+	/// Similar to getUser func ///
+	result, err := adminClient.Query(
+		f.Get(f.Ref(f.Collection("Users"), id)))
 
-			// Update `dob`
-			if updatedUser.DOB != user.DOB {
-				user.DOB = updatedUser.DOB
-			}
-
-			// Update `address`
-			if updatedUser.Address != "" && updatedUser.Address != user.Address {
-				user.Address = updatedUser.Address
-			}
-
-			// Update `description`
-			if updatedUser.Description != "" && updatedUser.Description != user.Description {
-				user.Description = updatedUser.Description
-			}
-
-			ctx.IndentedJSON(http.StatusPartialContent, user)
-			return
-		}
+	// Incase user not found
+	if err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
 	}
 
-	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+	var user User
+	if err = result.At(f.ObjKey("data")).Get(&user); err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "unable to fetch user details"})
+		return
+	}
+	//////////////////////////////
+
+	checkString := func(f1, f2 string) string {
+		if f1 != "" {
+			return f1
+		}
+		return f2
+	}
+
+	// ID, DOB & CreatedAt fields can't be changed in future after registration
+	result, err = adminClient.Query(
+		f.Update(
+			f.Ref(f.Collection("Users"), id),
+			f.Obj{
+				"data": f.Obj{
+					"name":        checkString(updatedUser.Name, user.Name),
+					"address":     checkString(updatedUser.Address, user.Address),
+					"description": checkString(updatedUser.Description, user.Description),
+				},
+			},
+		))
+
+	if err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
+	}
+
+	// Fetch the updated version of user details
+	if err = result.At(f.ObjKey("data")).Get(&updatedUser); err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "unable to fetch user details"})
+		return
+	}
+
+	// Respond the updated details to client
+	ctx.IndentedJSON(http.StatusPartialContent, updatedUser)
 }
 
 // deleteUser responds to DELETE requests to API
