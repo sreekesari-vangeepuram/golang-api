@@ -113,7 +113,7 @@ func getUser(ctx *gin.Context) {
 func createUser(ctx *gin.Context) {
 
 	var newUser User
-	if err := ctx.BindJSON(&newUser); err != nil {
+	if err := ctx.ShouldBindJSON(&newUser); err != nil {
 		ctx.IndentedJSON(
 			http.StatusNotAcceptable,
 			gin.H{"message": "invalid JSON data sent"},
@@ -169,7 +169,7 @@ func updateUser(ctx *gin.Context) {
 	var id string = ctx.Param("id")
 	var updatedUser User
 
-	if err := ctx.BindJSON(&updatedUser); err != nil {
+	if err := ctx.ShouldBindJSON(&updatedUser); err != nil {
 		return
 	}
 
