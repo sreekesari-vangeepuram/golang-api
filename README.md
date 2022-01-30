@@ -120,5 +120,20 @@ PATCH     - http://localhost:3000/api/users/[:id]
 DELETE    - http://localhost:3000/api/users/[:id]
 ```
 
+# TESTING
+To test the API run the command below:
+```bash
+$ go test -v
+```
+Before/After every test, change the ID
+inside the `main_test.go` script to test
+on other entries. Once a test case finish
+the entry will be deleted from the data
+due to the test function `TestDeleteUser`.
+
+Changing the `ID` constant from the test
+script wouldn't result in any unnecessary
+errors in future, during testing.
+
 # LICENSE
 Released under [MIT License](https://github.com/sreekesari-vangeepuram/golang-api/blob/main/LICENSE)
