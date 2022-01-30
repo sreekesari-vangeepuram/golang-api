@@ -85,34 +85,6 @@ func newID() (id string, err error) {
 	return id, nil
 }
 
-// slice of <User>s - for temporary use only!
-var users []User = []User{
-	{
-		ID:          "1",
-		Name:        "Sreekesari Vangeepuram",
-		DOB:         time.Date(2003, 1, 27, 0, 0, 0, 0, time.UTC),
-		Address:     "6-3-787/R/306, Hyderabad, Telangana, India - 500016",
-		Description: "Minimalist | Programmer | Explorer",
-		CreatedAt:   time.Now(),
-	},
-	{
-		ID:          "2",
-		Name:        "Vemula Vamshi Krishna",
-		DOB:         time.Date(2004, 6, 20, 0, 0, 0, 0, time.UTC),
-		Address:     "Near AMB Mall, Rajendra Nagar, Kondapur, Hyderabad, Telangana, India",
-		Description: "Intermediate Student",
-		CreatedAt:   time.Now(),
-	},
-	{
-		ID:          "3",
-		Name:        "Chepuri Vikram Bharadwaj",
-		DOB:         time.Date(2000, 12, 16, 0, 0, 0, 0, time.UTC),
-		Address:     "Near Alpha Hotel, Secendrabad East, Hyderabad, Telangana, India",
-		Description: "GOAT",
-		CreatedAt:   time.Now(),
-	},
-}
-
 // getUser responds to GET requests with `id` parameter to API
 func getUser(ctx *gin.Context) {
 	var id string = ctx.Param("id")
@@ -120,19 +92,20 @@ func getUser(ctx *gin.Context) {
 	result, err := adminClient.Query(
 		f.Get(f.Ref(f.Collection("Users"), id)))
 
-	// Incase user not found
+	// In case user not found
 	if err != nil {
 		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
 		return
 	}
 
+	// Shape the retrived data into <User> type
 	var user User
 	if err = result.At(f.ObjKey("data")).Get(&user); err != nil {
 		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "unable to fetch user details"})
 		return
 	}
 
-	// Respond to client
+	// Respond to client on read
 	ctx.IndentedJSON(http.StatusOK, user)
 }
 
@@ -186,7 +159,7 @@ func createUser(ctx *gin.Context) {
 		return
 	}
 
-	// Respond client
+	// Respond to client on create
 	ctx.IndentedJSON(http.StatusCreated, newUser)
 }
 
@@ -256,15 +229,17 @@ func updateUser(ctx *gin.Context) {
 func deleteUser(ctx *gin.Context) {
 	var id string = ctx.Param("id")
 
-	for i, user := range users {
-		if user.ID == id {
-			users = append(users[:i], users[i+1:]...)
-			ctx.IndentedJSON(http.StatusAccepted, user)
-			return
-		}
+	_, err := adminClient.Query(
+		f.Delete(f.Ref(f.Collection("Users"), id)))
+
+	// In case user not found
+	if err != nil {
+		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
 	}
 
-	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+	// Respond to client on delete
+	ctx.IndentedJSON(http.StatusAccepted, gin.H{"message": id + ": user successfully deleted"})
 }
 
 func main() {
