@@ -1,4 +1,4 @@
-# About
+# About `golang-api`
 A simple API written in Golang, which basically maintains  
 a database of users. These users can be added to the DB  
 using `CRUD` operations. This API uses faunaDB as its  
@@ -119,3 +119,6 @@ GET       - http://localhost:3000/api/users/[:id]
 PATCH     - http://localhost:3000/api/users/[:id]
 DELETE    - http://localhost:3000/api/users/[:id]
 ```
+
+# LICENSE
+Released under [MIT License](https://github.com/sreekesari-vangeepuram/golang-api/blob/main/LICENSE)
